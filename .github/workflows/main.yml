@@ -2,7 +2,7 @@
 name: COmpendium of RElations – Modulo 6
 
 on:
-  push:
+  #push:
   workflow_run:
     types: [completed]
     workflows: ["pages-build-deployment"]
@@ -135,7 +135,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.ACCESS_TOKEN }}
-          ref: ${{ env.JOBS_ID == 3 && 'master' || 'gh-pages' }}                  
+          ref: ${{ env.JOBS_ID == 3 && '' || 'gh-pages' }}                  
           repository: ${{ env.JOBS_ID ==3 && env.DOC || env.TARGET_REPOSITORY }}
 
       - name: 🚀 Setup Parser
