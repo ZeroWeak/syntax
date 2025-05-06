@@ -135,7 +135,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.ACCESS_TOKEN }}
-          ref: ${{ env.JOBS_ID == 3 && '' || 'gh-pages' }}                  
+          ref: ${{ env.JOBS_ID == 3 && 'master' || 'gh-pages' }}                  
           repository: ${{ env.JOBS_ID ==3 && env.DOC || env.TARGET_REPOSITORY }}
 
       - name: 🚀 Setup Parser
