@@ -103,55 +103,29 @@ elif [[ "${JOBS_ID}" == "2" ]]; then
 
   ls -alR $GITHUB_WORKSPACE
 
-  echo -e "\n$hr\nGH BRANCHES\n$hr"
-  cd $RUNNER_TEMP && mkdir my-project && cd my-project && git init -q
-  git remote add source "$REMOTE_REPO" && git remote add origin "$TARGET_REPO"
+  git clone https://eq19:$GH_TOKEN@github.com/$TARGET_REPOSITORY.wiki.git /tmp/wiki
+ 
+   if [[ ! -d /tmp/wiki/_user ]]; then
+     git clone https://eq19:$GH_TOKEN@github.com/eq19/eq19.wiki.git /tmp/dummy
+     rm -rf /tmp/wiki/* /tmp/dummy/.git && mv -f /tmp/dummy/* /tmp/wiki/
+   fi
+   
+   rm -rf /tmp/wiki/_user && mv -f user_data /tmp/wiki/_user
+   find /tmp/wiki/_user/strategies -mindepth 1 -type d -exec rm -rf {} +
+   cd /tmp/wiki && git add . && git commit --allow-empty -m "update params" && git push  
 
-  # Get fresh branch lists
-  git fetch --all
-
-  # Get list of existing target branches
-  existing_target_branches=$(git ls-remote --heads origin | awk -F'/' '{print $3}')
-
-  # Fetch only gh- branches from source
-  git fetch source 'refs/heads/gh-*:refs/remotes/source/gh-*'
-
-  # Process branches
-  for remote_branch in $(git branch -r | grep 'source/gh-'); do
-    local_branch=${remote_branch#source/}
-    
-    if ! grep -q "^$local_branch$" <<< "$existing_target_branches"; then
-      # New branch case
-      if [[ "$local_branch" =~ ^(gh-base|gh-source|gh-pages)$ ]]; then
-         git checkout -b "$local_branch" "$remote_branch" && \
-         git push origin "$local_branch" && \
-         echo "Successfully pushed $local_branch to target" || \
-         echo "Failed to push $local_branch"
-      fi
-    else
-      # Existing branch case
-      if [[ "$local_branch" == "gh-pages" ]]; then
-        # Check if 'docs/' exists in remote
-        if ! git ls-tree --name-only "origin/gh-pages" | grep -q "^docs/"; then
-          echo "No docs/ found - recreating gh-pages"
-          # Ensure local branch exists
-          if ! git show-ref --verify --quiet "refs/heads/gh-pages"; then
-            git checkout -b gh-pages "$remote_branch"
-          else
-            git checkout gh-pages
-            git reset --hard "$remote_branch"
-          fi
-          git push --force origin gh-pages
-        fi
-      fi
-    fi
-  done
-  
 elif [[ "${JOBS_ID}" == "3" ]]; then
+
+  find -not -path "./.git/*" -not -name ".git" -delete
+  shopt -s dotglob && cp -R /mnt/disks/deeplearning/tmp/_site/* .
+
   # Get the config value and save to file.json
   curl -s -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github.v3+json" \
     "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/variables/JEKYLL_CONFIG" \
     | jq -r '.value' > _config.yml
+  curl -s -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github.v3+json" \
+    "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/variables/ORGS_JSON" \
+    | jq -r '.value' > _data/orgs.json
 
   gist.sh ${BASE} $(pwd)
   if [[ "${WIKI}" != "${BASE}" ]]; then
